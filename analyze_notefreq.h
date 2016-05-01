@@ -1,4 +1,4 @@
-/* Audio Library Guitar and Bass Tuner
+/* Audio Library Note Frequency Detection & Guitar/Bass Tuner
  * Copyright (c) 2015, Colin Duffy
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -20,9 +20,10 @@
  * THE SOFTWARE.
  */
 
-#ifndef AudioAnalyzeGuitarTuner_h_
-#define AudioAnalyzeGuitarTuner_h_
+#ifndef AudioAnalyzeNoteFrequency_h_
+#define AudioAnalyzeNoteFrequency_h_
 
+#include "Arduino.h"
 #include "AudioStream.h"
 /***********************************************************************
  *              Safe to adjust these values below                      *
@@ -38,14 +39,14 @@
  ***********************************************************************/
 #define AUDIO_GUITARTUNER_BLOCKS  24
 /***********************************************************************/
-class AudioAnalyzeGuitarTuner : public AudioStream {
+class AudioAnalyzeNoteFrequency : public AudioStream {
 public:
     /**
      *  constructor to setup Audio Library and initialize
      *
      *  @return none
      */
-    AudioAnalyzeGuitarTuner( void ) : AudioStream( 1, inputQueueArray ), enabled( false ), new_output(false) {
+    AudioAnalyzeNoteFrequency( void ) : AudioStream( 1, inputQueueArray ), enabled( false ), new_output(false) {
     
     }
     

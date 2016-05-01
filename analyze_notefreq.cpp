@@ -1,4 +1,4 @@
-/* Audio Library Guitar and Bass Tuner
+/* Audio Library Note Frequency Detection & Guitar/Bass Tuner
  * Copyright (c) 2015, Colin Duffy
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -20,29 +20,27 @@
  * THE SOFTWARE.
  */
 
-#include "analyze_guitartuner.h"
+#include "analyze_notefreq.h"
 #include "utility/dspinst.h"
 #include "arm_math.h"
 
 #define HALF_BLOCKS AUDIO_GUITARTUNER_BLOCKS * 64
 
-#define LOOP1(a)  a
-#define LOOP2(a)  a LOOP1(a)
-#define LOOP3(a)  a LOOP2(a)
-#define LOOP4(a)  a LOOP3(a)
-#define LOOP8(a)  a LOOP3(a) a LOOP3(a)
-#define LOOP16(a) a LOOP8(a) a LOOP2(a) a LOOP3(a)
-#define LOOP32(a)  a LOOP16(a) a LOOP8(a) a LOOP1(a) a LOOP3(a)
-#define LOOP64(a)  a LOOP32(a) a LOOP16(a) a LOOP8(a) a LOOP2(a) a LOOP1(a)
-#define UNROLL(n,a) LOOP##n(a)
-
+/**
+ *  Copy internal blocks of data to class buffer
+ *
+ *  @param destination destination address
+ *  @param source      source address
+ */
 static void copy_buffer(void *destination, const void *source) {
     const uint16_t *src = (const uint16_t *)source;
     uint16_t *dst = (uint16_t *)destination;
     for (int i=0; i < AUDIO_BLOCK_SAMPLES; i++) *dst++ = *src++;
 }
-
-void AudioAnalyzeGuitarTuner::update( void ) {
+/**
+ *  Virtual function to override from Audio Library
+ */
+void AudioAnalyzeNoteFrequency::update( void ) {
     
     audio_block_t *block;
     
@@ -54,7 +52,6 @@ void AudioAnalyzeGuitarTuner::update( void ) {
         return;
     }
     
-    digitalWriteFast(2, HIGH);
     if ( next_buffer ) {
         blocklist1[state++] = block;
         if ( !first_run && process_buffer ) process( );
@@ -76,12 +73,17 @@ void AudioAnalyzeGuitarTuner::update( void ) {
         process_buffer = true;
         first_run = false;
         state = 0;
-        //digitalWriteFast(LED_BUILTIN, !digitalReadFast(LED_BUILTIN));
     }
 }
-
-FASTRUN void AudioAnalyzeGuitarTuner::process( void ) {
-    //digitalWriteFast(0, HIGH);
+/**
+ *  Start the Yin algorithm
+ *
+ *  TODO: Significant speed up would be to use spectral domain to find fundamental frequency.
+ *  This paper explains: https://aubio.org/phd/thesis/brossier06thesis.pdf -> Section 3.2.4
+ *  page 79. Might have to downsample for low fundmental frequencies because of fft buffer
+ *  size limit.
+ */
+FASTRUN void AudioAnalyzeNoteFrequency::process( void ) {
     
     const int16_t *p;
     p = AudioBuffer;
@@ -91,52 +93,35 @@ FASTRUN void AudioAnalyzeGuitarTuner::process( void ) {
     do {
         uint16_t x   = 0;
         int64_t  sum = 0;
-        //uint32_t res;
         do {
-            /*int16_t current1, lag1, current2, lag2;
-             int32_t val1, val2;
-             lag1 = *( ( uint32_t * )p + ( x + tau ) );
-             current1 = *( ( uint32_t * )p + x );
-             x += 32;
-             lag2 = *( ( uint32_t * )p + ( x + tau ) );
-             current2 = *( ( uint32_t * )p + x );
-             val1 = __PKHBT(current1, current2, 0x10);
-             val2 = __PKHBT(lag1, lag2, 0x10);
-             res = __SSUB16( val1, val2 );
-             sum = __SMLALD(res, res, sum);
-             //sum = __SMLSLD(delta1, delta2, sum);*/
             int16_t current, lag, delta;
-            //UNROLL(16,
-                   lag = *( ( int16_t * )p + ( x+tau ) );
-                   current = *( ( int16_t * )p+x );
-                   delta = ( current-lag );
-                   sum += delta * delta;
+            lag = *( ( int16_t * )p + ( x+tau ) );
+            current = *( ( int16_t * )p+x );
+            delta = ( current-lag );
+            sum += delta * delta;
 #if F_CPU == 144000000
-                   x += 8;
+            x += 8;
 #elif F_CPU == 120000000
-                   x += 12;
+            x += 12;
 #elif F_CPU == 96000000
-                   x += 16;
+            x += 16;
 #elif F_CPU < 96000000
-                   x += 32;
+            x += 32;
 #endif
-                   //);
         } while ( x <= HALF_BLOCKS );
-
+        
         running_sum += sum;
         yin_buffer[yin_idx] = sum*tau;
         rs_buffer[yin_idx] = running_sum;
         yin_idx = ( ++yin_idx >= 5 ) ? 0 : yin_idx;
         tau = estimate( yin_buffer, rs_buffer, yin_idx, tau );
-
+        
         if ( tau == 0 ) {
             process_buffer  = false;
             new_output      = true;
             yin_idx         = 1;
             running_sum     = 0;
             tau_global      = 1;
-            //digitalWriteFast(2, LOW);
-            //digitalWriteFast(0, LOW);
             return;
         }
     } while ( --cycles );
@@ -147,24 +132,22 @@ FASTRUN void AudioAnalyzeGuitarTuner::process( void ) {
         yin_idx         = 1;
         running_sum     = 0;
         tau_global      = 1;
-        //digitalWriteFast(0, LOW);
         return;
     }
     tau_global = tau;
-    //digitalWriteFast(0, LOW);
 }
 
 /**
- *  check the sampled data for fundmental frequency
+ *  check the sampled data for fundamental frequency
  *
  *  @param yin  buffer to hold sum*tau value
  *  @param rs   buffer to hold running sum for sampled window
  *  @param head buffer index
- *  @param tau  lag we are currently working on this gets incremented
+ *  @param tau  lag we are currently working on gets incremented
  *
  *  @return tau
  */
-uint16_t AudioAnalyzeGuitarTuner::estimate( int64_t *yin, int64_t *rs, uint16_t head, uint16_t tau ) {
+uint16_t AudioAnalyzeNoteFrequency::estimate( int64_t *yin, int64_t *rs, uint16_t head, uint16_t tau ) {
     const int64_t *y = ( int64_t * )yin;
     const int64_t *r = ( int64_t * )rs;
     uint16_t _tau, _head;
@@ -200,9 +183,8 @@ uint16_t AudioAnalyzeGuitarTuner::estimate( int64_t *yin, int64_t *rs, uint16_t 
  *  Initialise
  *
  *  @param threshold Allowed uncertainty
- *  @param cpu_max   How much cpu usage before throttling
  */
-void AudioAnalyzeGuitarTuner::begin( float threshold ) {
+void AudioAnalyzeNoteFrequency::begin( float threshold ) {
     __disable_irq( );
     process_buffer = false;
     yin_threshold  = threshold;
@@ -223,7 +205,7 @@ void AudioAnalyzeGuitarTuner::begin( float threshold ) {
  *
  *  @return true if data is ready else false
  */
-bool AudioAnalyzeGuitarTuner::available( void ) {
+bool AudioAnalyzeNoteFrequency::available( void ) {
     __disable_irq( );
     bool flag = new_output;
     if ( flag ) new_output = false;
@@ -236,7 +218,7 @@ bool AudioAnalyzeGuitarTuner::available( void ) {
  *
  *  @return frequency in hertz
  */
-float AudioAnalyzeGuitarTuner::read( void ) {
+float AudioAnalyzeNoteFrequency::read( void ) {
     __disable_irq( );
     float d = data;
     __enable_irq( );
@@ -248,7 +230,7 @@ float AudioAnalyzeGuitarTuner::read( void ) {
  *
  *  @return periodicity
  */
-float AudioAnalyzeGuitarTuner::probability( void ) {
+float AudioAnalyzeNoteFrequency::probability( void ) {
     __disable_irq( );
     float p = periodicity;
     __enable_irq( );
@@ -260,7 +242,7 @@ float AudioAnalyzeGuitarTuner::probability( void ) {
  *
  *  @param thresh    Allowed uncertainty
  */
-void AudioAnalyzeGuitarTuner::threshold( float p ) {
+void AudioAnalyzeNoteFrequency::threshold( float p ) {
     __disable_irq( );
     yin_threshold = p;
     __enable_irq( );

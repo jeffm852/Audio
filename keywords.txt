@@ -1,22 +1,29 @@
 Audio	KEYWORD2
 AudioConnection	KEYWORD2
 AudioInputI2S	KEYWORD2
+AudioInputI2SQuad	KEYWORD2
 AudioInputI2Sslave	KEYWORD2
+AudioInputUSB	KEYWORD2
 AudioOutputI2S	KEYWORD2
+AudioOutputI2SQuad	KEYWORD2
 AudioOutputI2Sslave	KEYWORD2
 AudioOutputSPDIF	KEYWORD2
 AudioOutputPWM	KEYWORD2
+AudioOutputUSB	KEYWORD2
 AudioControlSGTL5000	KEYWORD2
 AudioControlWM8731	KEYWORD2
 AudioControlWM8731master	KEYWORD2
+AudioControlAK4558	KEYWORD2
+AudioControlCS4272	KEYWORD2
 AudioMemory	KEYWORD2
 
 AudioAnalyzeFFT256	KEYWORD2
 AudioAnalyzeFFT1024	KEYWORD2
 AudioAnalyzePeak	KEYWORD2
+AudioAnalyzeRMS	KEYWORD2
 AudioAnalyzePrint	KEYWORD2
 AudioAnalyzeToneDetect	KEYWORD2
-AudioAnalyzeGuitarTuner	KEYWORD2
+AudioAnalyzeNoteFrequency	KEYWORD2
 AudioEffectChorus	KEYWORD2
 AudioEffectFade	KEYWORD2
 AudioEffectFlange	KEYWORD2
@@ -25,6 +32,7 @@ AudioEffectMultiply	KEYWORD2
 AudioEffectDelay	KEYWORD2
 AudioEffectDelayExternal	KEYWORD2
 AudioEffectBitcrusher	KEYWORD2
+AudioEffectMidSide	KEYWORD2
 AudioFilterBiquad	KEYWORD2
 AudioFilterFIR	KEYWORD2
 AudioFilterStateVariable	KEYWORD2
@@ -39,6 +47,7 @@ AudioRecordQueue	KEYWORD2
 AudioSynthToneSweep	KEYWORD2
 AudioSynthWaveform	KEYWORD2
 AudioSynthWaveformSine	KEYWORD2
+AudioSynthWaveformSineHires	KEYWORD2
 AudioSynthWaveformSineModulated	KEYWORD2
 AudioSynthWaveformDc	KEYWORD2
 AudioSynthNoiseWhite	KEYWORD2
@@ -59,10 +68,17 @@ setLowpass	KEYWORD2
 setHighpass	KEYWORD2
 setBandpass	KEYWORD2
 setNotch	KEYWORD2
+muteOutput	KEYWORD2
+unmuteOutput	KEYWORD2
+muteInput	KEYWORD2
+unmuteInput	KEYWORD2
+enableDither	KEYWORD2
+disableDither	KEYWORD2
 frequency	KEYWORD2
 phase	KEYWORD2
 amplitude	KEYWORD2
 offset	KEYWORD2
+readPeakToPeak	KEYWORD2
 pulseWidth	KEYWORD2
 resonance	KEYWORD2
 octaveControl	KEYWORD2
@@ -73,9 +89,16 @@ output	KEYWORD2
 trigger	KEYWORD2
 length	KEYWORD2
 threshold	KEYWORD2
+setAddress	KEYWORD2
 enable	KEYWORD2
+enableIn	KEYWORD2
+enableOut	KEYWORD2
 disable	KEYWORD2
+disableIn	KEYWORD2
+disableOut	KEYWORD2
 volume	KEYWORD2
+volumeLeft	KEYWORD2
+volumeRight KEYWORD2
 attack	KEYWORD2
 hold	KEYWORD2
 decay	KEYWORD2
@@ -91,6 +114,9 @@ micGain	KEYWORD2
 lineInLevel	KEYWORD2
 lineOutLevel	KEYWORD2
 dacVolume	KEYWORD2
+dacVolumeRamp	KEYWORD2
+dacVolumeRampLinear	KEYWORD2
+dacVolumeRampDisable	KEYWORD2
 adcHighPassFilterEnable	KEYWORD2
 adcHighPassFilterFreeze	KEYWORD2
 adcHighPassFilterDisable	KEYWORD2
@@ -116,6 +142,8 @@ sampleRate	KEYWORD2
 bits	KEYWORD2
 mute_PCM	KEYWORD2
 probability	KEYWORD2
+encode	KEYWORD2
+decode	KEYWORD2
 
 AudioMemoryUsage	KEYWORD2
 AudioMemoryUsageMax	KEYWORD2
@@ -169,3 +197,7 @@ WAVEFORM_SAMPLE_HOLD	LITERAL1
 
 AUDIO_MEMORY_23LC1024	LITERAL1
 AUDIO_MEMORY_MEMORYBOARD	LITERAL1
+
+CS4272_RATIO_SINGLE	LITERAL1
+CS4272_RATIO_DOUBLE	LITERAL1
+CS4272_RATIO_QUAD	LITERAL1
