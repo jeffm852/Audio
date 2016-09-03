@@ -1,5 +1,5 @@
 /* Audio Library for Teensy 3.X
- * Copyright (c) 2014, Paul Stoffregen, paul@pjrc.com
+ * Copyright (c) 2016, Byron Jacquot, SparkFun Electronics
  *
  * Development of this audio library was funded by PJRC.COM, LLC by sales of
  * Teensy and Audio Adaptor boards.  Please support PJRC's efforts to develop
@@ -24,29 +24,72 @@
  * THE SOFTWARE.
  */
 
-#ifndef input_adc_h_
-#define input_adc_h_
+#pragma once
 
-#include "Arduino.h"
+#ifndef _SYNTH_SIMPLE_DRUM_H_
+#define _SYNTH_SIMPLE_DRUM_H_
 #include "AudioStream.h"
-#include "DMAChannel.h"
+#include "utility/dspinst.h"
 
-class AudioInputAnalog : public AudioStream
+class AudioSynthSimpleDrum : public AudioStream
 {
 public:
-        AudioInputAnalog() : AudioStream(0, NULL) { init(A2); }
-        AudioInputAnalog(uint8_t pin) : AudioStream(0, NULL) { init(pin); }
-        virtual void update(void);
-        friend void dma_ch9_isr(void);
+
+  AudioSynthSimpleDrum() : AudioStream(1, inputQueueArray) 
+  {
+    length(600);
+    frequency(60);
+    pitchMod(0x200);
+    wav_amplitude1 = 0x7fff;
+    wav_amplitude2 = 0;
+  }
+  void noteOn();
+
+  void frequency(float freq)
+  {
+    if(freq < 0.0)
+      freq = 0;
+    else if(freq > (AUDIO_SAMPLE_RATE_EXACT/2))
+      freq = AUDIO_SAMPLE_RATE_EXACT/2;
+
+    wav_increment = (freq * (0x7fffffffLL/AUDIO_SAMPLE_RATE_EXACT)) + 0.5;
+  }
+
+  void length(int32_t milliseconds)
+  {
+    if(milliseconds < 0)
+      return;
+    if(milliseconds > 5000)
+      milliseconds = 5000;
+
+    int32_t len_samples = milliseconds*(AUDIO_SAMPLE_RATE_EXACT/1000.0);
+
+    env_decrement = (0x7fff0000/len_samples);
+  };
+
+  void secondMix(float level);
+  void pitchMod(float depth);
+
+  using AudioStream::release;
+  virtual void update(void);
+
 private:
-        static audio_block_t *block_left;
-        static uint16_t block_offset;
-        static int32_t dc_average_hist[16];
-        static int32_t current_dc_average_index;
-        static bool update_responsibility;
-	static DMAChannel dma;
-	static void isr(void);
-	static void init(uint8_t pin);
+  audio_block_t *inputQueueArray[1];
+
+  // Envelope params
+  int32_t env_lin_current; // present value of linear slope.
+  int32_t env_decrement;   // how each sample deviates from previous.
+
+  // Waveform params
+  uint32_t wav_phasor;      
+  uint32_t wav_phasor2;     
+  
+  int16_t wav_amplitude1;
+  int16_t wav_amplitude2;
+  
+  uint32_t wav_increment;
+  int32_t  wav_pitch_mod;
 };
 
 #endif
+

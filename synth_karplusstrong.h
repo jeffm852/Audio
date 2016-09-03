@@ -1,5 +1,5 @@
 /* Audio Library for Teensy 3.X
- * Copyright (c) 2014, Paul Stoffregen, paul@pjrc.com
+ * Copyright (c) 2016, Paul Stoffregen, paul@pjrc.com
  *
  * Development of this audio library was funded by PJRC.COM, LLC by sales of
  * Teensy and Audio Adaptor boards.  Please support PJRC's efforts to develop
@@ -24,50 +24,43 @@
  * THE SOFTWARE.
  */
 
-#ifndef pdb_h_
-#define pdb_h_
+#ifndef synth_karplusstrong_h_
+#define synth_karplusstrong_h_
+#include "Arduino.h"
+#include "AudioStream.h"
+#include "utility/dspinst.h"
 
-#include "kinetis.h"
-
-// Multiple input & output objects use the Programmable Delay Block
-// to set their sample rate.  They must all configure the same
-// period to avoid chaos.
-
-#define PDB_CONFIG (PDB_SC_TRGSEL(15) | PDB_SC_PDBEN | PDB_SC_CONT | PDB_SC_PDBIE | PDB_SC_DMAEN)
-
-
-#if F_BUS == 120000000
-  #define PDB_PERIOD (2720-1)
-#elif F_BUS == 108000000
-  #define PDB_PERIOD (2448-1)
-#elif F_BUS == 96000000
-  #define PDB_PERIOD (2176-1)
-#elif F_BUS == 90000000
-  #define PDB_PERIOD (2040-1)
-#elif F_BUS == 80000000
-  #define PDB_PERIOD (1813-1)  // small ?? error
-#elif F_BUS == 72000000
-  #define PDB_PERIOD (1632-1)
-#elif F_BUS == 64000000
-  #define PDB_PERIOD (1451-1)  // small ?? error
-#elif F_BUS == 60000000
-  #define PDB_PERIOD (1360-1)
-#elif F_BUS == 56000000
-  #define PDB_PERIOD (1269-1)  // 0.026% error
-#elif F_BUS == 54000000
-  #define PDB_PERIOD (1224-1)
-#elif F_BUS == 48000000
-  #define PDB_PERIOD (1088-1)
-#elif F_BUS == 40000000
-  #define PDB_PERIOD (907-1)  // small ?? error
-#elif F_BUS == 36000000
-  #define PDB_PERIOD (816-1)
-#elif F_BUS == 24000000
-  #define PDB_PERIOD (544-1)
-#elif F_BUS == 16000000
-  #define PDB_PERIOD (363-1)  // 0.092% error
-#else
-  #error "Unsupported F_BUS speed"
-#endif
+class AudioSynthKarplusStrong : public AudioStream
+{
+public:
+	AudioSynthKarplusStrong() : AudioStream(0, NULL) {
+		state = 0;
+	}
+	void noteOn(float frequency, float velocity) {
+		if (velocity > 1.0f) {
+			velocity = 0.0f;
+		} else if (velocity <= 0.0f) {
+			noteOff(1.0f);
+			return;
+		}
+		magnitude = velocity * 65535.0f;
+		int len = (AUDIO_SAMPLE_RATE_EXACT / frequency) + 0.5f;
+		if (len > 536) len = 536;
+		bufferLen = len;
+		bufferIndex = 0;
+		state = 1;
+	}
+	void noteOff(float velocity) {
+		state = 0;
+	}
+	virtual void update(void);
+private:
+	uint8_t  state;     // 0=steady output, 1=begin on next update, 2=playing
+	uint16_t bufferLen;
+	uint16_t bufferIndex;
+	int32_t  magnitude; // current output
+	static uint32_t seed;  // must start at 1
+	int16_t buffer[536]; // TODO: dynamically use audio memory blocks
+};
 
 #endif

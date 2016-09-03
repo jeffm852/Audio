@@ -1,5 +1,5 @@
 /* Audio Library for Teensy 3.X
- * Copyright (c) 2014, Paul Stoffregen, paul@pjrc.com
+ * Copyright (c) 2016, Paul Stoffregen, paul@pjrc.com
  *
  * Development of this audio library was funded by PJRC.COM, LLC by sales of
  * Teensy and Audio Adaptor boards.  Please support PJRC's efforts to develop
@@ -24,50 +24,49 @@
  * THE SOFTWARE.
  */
 
-#ifndef pdb_h_
-#define pdb_h_
+//Adapted to PT8211, Frank Bösing.
 
-#include "kinetis.h"
+#ifndef output_pt8211_h_
+#define output_pt8211_h_
 
-// Multiple input & output objects use the Programmable Delay Block
-// to set their sample rate.  They must all configure the same
-// period to avoid chaos.
+	//uncomment to enable oversampling:
+#define AUDIO_PT8211_OVERSAMPLING
+	//uncomment ONE of these to define interpolation type for oversampling:
+// #define AUDIO_PT8211_INTERPOLATION_LINEAR
+#define AUDIO_PT8211_INTERPOLATION_CIC
 
-#define PDB_CONFIG (PDB_SC_TRGSEL(15) | PDB_SC_PDBEN | PDB_SC_CONT | PDB_SC_PDBIE | PDB_SC_DMAEN)
+#include "Arduino.h"
+#include "AudioStream.h"
+#include "DMAChannel.h"
+
+class AudioOutputPT8211 : public AudioStream
+{
+public:
+	AudioOutputPT8211(void) : AudioStream(2, inputQueueArray) { begin(); }
+	virtual void update(void);
+	void begin(void);
+	//friend class AudioInputI2S;
+protected:
+	//AudioOutputI2S(int dummy): AudioStream(2, inputQueueArray) {} // to be used only inside AudioOutputI2Sslave !!
+	static void config_i2s(void);
+	static audio_block_t *block_left_1st;
+	static audio_block_t *block_right_1st;
+	static bool update_responsibility;
+	static DMAChannel dma;
+	static void isr(void)
+	#if defined(AUDIO_PT8211_OVERSAMPLING)
+		__attribute__((optimize("unroll-loops")))
+	#endif
+	;
+private:
+	static audio_block_t *block_left_2nd;
+	static audio_block_t *block_right_2nd;
+	static uint16_t block_left_offset;
+	static uint16_t block_right_offset;
+	audio_block_t *inputQueueArray[2];
+};
 
 
-#if F_BUS == 120000000
-  #define PDB_PERIOD (2720-1)
-#elif F_BUS == 108000000
-  #define PDB_PERIOD (2448-1)
-#elif F_BUS == 96000000
-  #define PDB_PERIOD (2176-1)
-#elif F_BUS == 90000000
-  #define PDB_PERIOD (2040-1)
-#elif F_BUS == 80000000
-  #define PDB_PERIOD (1813-1)  // small ?? error
-#elif F_BUS == 72000000
-  #define PDB_PERIOD (1632-1)
-#elif F_BUS == 64000000
-  #define PDB_PERIOD (1451-1)  // small ?? error
-#elif F_BUS == 60000000
-  #define PDB_PERIOD (1360-1)
-#elif F_BUS == 56000000
-  #define PDB_PERIOD (1269-1)  // 0.026% error
-#elif F_BUS == 54000000
-  #define PDB_PERIOD (1224-1)
-#elif F_BUS == 48000000
-  #define PDB_PERIOD (1088-1)
-#elif F_BUS == 40000000
-  #define PDB_PERIOD (907-1)  // small ?? error
-#elif F_BUS == 36000000
-  #define PDB_PERIOD (816-1)
-#elif F_BUS == 24000000
-  #define PDB_PERIOD (544-1)
-#elif F_BUS == 16000000
-  #define PDB_PERIOD (363-1)  // 0.092% error
-#else
-  #error "Unsupported F_BUS speed"
-#endif
+
 
 #endif
